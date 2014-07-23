@@ -1,0 +1,55 @@
+Package configuration;
+
+Helpers
+    lowercase = ['a' .. 'z'];
+    uppercase = ['A' .. 'Z'];
+
+    digit = ['0' .. '9'];
+    tab = 9;
+    cr = 13;
+    lf = 10;
+    eol = cr lf | cr | lf;
+
+    letter = lowercase | uppercase | '_' ;
+
+Tokens
+
+    l_brace = '{';
+    r_brace = '}';
+    colon = ':';
+    assign = '=';
+
+    id = letter (letter | digit)*;
+
+    blank = (' ' | tab | eol)+;
+
+Ignored Tokens
+    blank;
+
+Productions
+
+    grammar                         = definiton_list                            {-> New grammar ([definiton_list.def])}
+                                    ;
+    definiton_list        {-> def*} =
+                                    {list} definiton_list def                   {-> [definiton_list.def, def]}
+                                  | {single} def                                {-> [def]}
+                                    ;
+
+    def                             = {type} id l_brace field_def+ r_brace    {-> New def.type (id, [field_def])}
+                                    | {instance} [object]:id colon id
+                                            l_brace r_brace                     {-> New def.instance (object, id)}
+                                    ;
+
+    field_def                        = [name]:id colon [type]:id                 {-> New field_def (name, type)}
+                                    ;
+
+Abstract Syntax Tree
+    grammar         = def+
+                    ;
+
+    def             = {type} [i]:id [f]:field_def+
+                    | {instance} [o]:id [t]:id
+                    ;
+
+    field_def        = [name]:id [type]:id
+                    ;

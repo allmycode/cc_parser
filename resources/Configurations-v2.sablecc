@@ -1,0 +1,56 @@
+Package configuration;
+
+Helpers
+    lowercase = ['a' .. 'z'];
+    uppercase = ['A' .. 'Z'];
+
+    digit = ['0' .. '9'];
+    tab = 9;
+    cr = 13;
+    lf = 10;
+    eol = cr lf | cr | lf;
+
+
+
+    letter = lowercase | uppercase | '_' ;
+    id_part = letter (letter | digit)*;
+
+Tokens
+
+    lcbrace = '{';
+    rcbrace = '}';
+    colon = ':';
+
+    id = id_part;
+
+    blank = (' ' | tab | eol)+;
+
+Ignored Tokens
+    blank;
+
+Productions
+
+    grammar = definiton_list {-> New grammar ([definiton_list.def])}
+            ;
+    definiton_list {-> def*}=
+                {list} definiton_list def {-> [definiton_list.def, def]}
+                | {single} def          {-> [def]}
+                ;
+
+    def = {typedef} id lcbrace field+ rcbrace {-> New def.typedef (id, [field])}
+                        | {instance} [object]:id colon id lcbrace rcbrace {-> New def.instance (object, id)}
+    ;
+
+    field = [name]:id colon [type]:id {-> New field (name, type)}
+            ;
+
+Abstract Syntax Tree
+    grammar = def+;
+
+    def =  {typedef} [i]:id [f]:field+
+            | {instance} [o]:id [t]:id
+            ;
+
+    field = [name]:id [type]:id;
+
+    object = id;

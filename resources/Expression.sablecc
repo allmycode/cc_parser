@@ -1,0 +1,110 @@
+Package expression;
+
+Helpers
+    lowercase = ['a' .. 'z'];
+    uppercase = ['A' .. 'Z'];
+
+    digit = ['0' .. '9'];
+    tab = 9;
+    cr = 13;
+    lf = 10;
+    eol = cr lf | cr | lf;
+
+    letter = lowercase | uppercase | '_' ;
+Tokens
+    l_par = '(';
+    r_par = ')';
+    l_brace = '{';
+    r_brace = '}';
+    plus = '+';
+    minus = '-';
+    mult = '*';
+    div = '/';
+    semi = ';';
+    arrow = '->';
+    assign = '=';
+
+    id = letter (letter | digit)*;
+
+    if = 'if ';
+    then = 'then ';
+    else = 'else ';
+    case = 'case ';
+
+    blank = (' ' | tab | eol)+;
+    number = digit+;
+
+Ignored Tokens
+
+    blank;
+
+Productions
+
+    grammar           = expdef_list                    {-> New grammar ([expdef_list.expdef])}
+                      ;
+
+    expdef_list       {-> expdef*} = {list} expdef_list expdef        {-> [expdef_list.expdef, expdef]}
+                      | {single} expdef                    {-> [expdef] }
+                      ;
+
+    expdef            = {assign_simple} id assign exp             {-> New expdef(id, exp)}
+                      | {assign_if} id assign if_exp             {-> New expdef(id, if_exp.exp)}
+                      | {assign_case} id assign case_exp             {-> New expdef(id, case_exp.exp)}
+                      ;
+
+    if_exp            {-> exp} =
+                      if [condition]:exp then [then_part]:exp else [else_part]:exp {-> New exp.if (condition.exp, then_part.exp, else_part.exp)}
+                      ;
+
+    case_exp          {-> exp} =
+                      case id l_brace case_variant+ r_brace {-> New exp.case (id, [case_variant])}
+                      ;
+
+    case_variant      = [condition]:exp arrow [outcome]:exp {-> New case_variant(condition, outcome)}
+                      ;
+
+    exp               {-> exp} =
+                        {plus}    exp plus factor   {-> New exp.plus (exp.exp, factor.exp) }
+                      | {minus}   exp minus factor  {-> New exp.minus (exp.exp, factor.exp) }
+                      | {factor}  factor            {-> factor.exp }
+                      ;
+
+    factor            {-> exp} =
+                        {mult}    factor mult term  {-> New exp.mult (factor.exp, term.exp) }
+                      | {div}     factor div term   {-> New exp.div (factor.exp, term.exp) }
+                      | {term}    term              {-> term.exp }
+                      ;
+
+    term              {-> exp} =
+                        {number}  number            {-> New exp.number(number) }
+                      | {exp}     l_par exp r_par   {-> exp.exp }
+                      | {textual} id          {-> New exp.id (id) }
+                      | {if}      l_par if_exp r_par {-> if_exp.exp }
+                      | {case}      l_par case_exp r_par {-> case_exp.exp }
+
+                      ;
+
+
+
+
+Abstract Syntax Tree
+
+    grammar           = expdef+
+                      ;
+
+    expdef            = [name]:id exp
+                      ;
+
+    case_variant      = [condition]:exp [outcome]:exp
+                      ;
+
+    exp               =
+                        {plus}    [l]:exp  [r]:exp |
+                        {minus}   [l]:exp  [r]:exp |
+                        {div}     [l]:exp  [r]:exp |
+                        {mult}    [l]:exp  [r]:exp |
+                        {if}      [if]:exp [then_part]:exp [else_part]:exp |
+                        {case}    [name]:id case_variant+ |
+                        {id} id |
+                        {number}  number
+                      ;
